@@ -8,24 +8,8 @@ export async function POST(request: Request) {
   const { type, role, level, techstack, amount, userid } = await request.json();
 
   try {
-    // Try to safely initialize the model
-    let model;
-    try {
-      const creds = JSON.parse(process.env.GOOGLE_CREDENTIALS || "{}");
-      if (typeof creds.project_id !== "string") {
-        console.warn("Missing or invalid project_id in service account.");
-        throw new Error("Skipping Google model init");
-      }
-
-      model = google("gemini-2.0-flash-001");
-    } catch (err : any) {
-      console.warn("Google model init skipped:", err.message);
-      return Response.json({ success: false, error: "Google model not initialized" }, { status: 200 });
-    }
-
-    // Generate the interview questions
     const { text: questions } = await generateText({
-      model,
+      model: google("gemini-2.0-flash-001"),
       prompt: `Prepare questions for a job interview.
         The job role is ${role}.
         The job experience level is ${level}.
@@ -42,9 +26,9 @@ export async function POST(request: Request) {
     });
 
     const interview = {
-      role,
-      type,
-      level,
+      role: role,
+      type: type,
+      level: level,
       techstack: techstack.split(","),
       questions: JSON.parse(questions),
       userId: userid,
@@ -57,8 +41,8 @@ export async function POST(request: Request) {
 
     return Response.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error("Unexpected Error:", error);
-    return Response.json({ success: false, error: "Server Error" }, { status: 500 });
+    console.error("Error:", error);
+    return Response.json({ success: false, error: error }, { status: 500 });
   }
 }
 
